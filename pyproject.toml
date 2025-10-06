@@ -7,7 +7,8 @@ name = "autoppa"
 version = "1.0.0"
 dependencies = [
   "python-dotenv",
-  "openai"
+  "openai",
+  "tiktoken"
 ]
 authors = [ { name = "Justin Silver", email = "justinRsilver@gmail.com"} ]
 description = "PPAgent for RTL code optimization"

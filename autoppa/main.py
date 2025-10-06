@@ -61,6 +61,10 @@ def main():
     subparser.add_argument("-p", "--prompt",
                            default=None,
                            help="If provided, overwrite the prompt to the LLM (useful for debugging)")
+    subparser.add_argument("-c", "--context-len",
+                           type=int,
+                           default=100000,
+                           help="Max size of context window in tokens (excess is truncated from start)")
     
     # if no arguments specified, then print help 
     args = parser.parse_args(args=None if sys.argv[1:] else ['--help'])
@@ -83,7 +87,8 @@ def main():
         result = synth(code, debug=args.debug)
     
     elif args.step == "agent":
-        result = agent(args.task, debug=args.debug, override_prompt=args.prompt)
+        result = agent(args.task, debug=args.debug,
+                       override_prompt=args.prompt, max_context_len=args.context_len)
         
     
     print(result)

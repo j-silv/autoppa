@@ -1,5 +1,6 @@
 from openai import OpenAI
 import json
+import tiktoken
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -14,9 +15,11 @@ If the tools report errors, then debug the Verilog source code and find out the 
 Your goal is to improve the baseline metric as much as possible (power, performance, or area).
 
 Rules:
-- Only write the verilog code for the current task.
-- A test bench already exists to test the functional correctness. You don't need to generate testbench to test the generated Verilog code.
-- You can not modify the testbench.
+- Only write the verilog code for the current task. Don't generate any other non-verilog text when outputting.
+- You shouldn't change the module port list.
+- The first line of the output should be the module port list and the last line should be endmodule
+- A test bench already exists to test the functional correctness and is provided for reference.
+- You can not modify the testbench. Only focus on optimizing DUT.
 - Don't use any SystemVerilog constructs - only pure Verilog syntax.
 - Don't generate duplicated signal assignments or blocks.
 - Define the parameters or signals first before using them. 
@@ -31,23 +34,40 @@ Rules:
 
 
 class LLM:
-    def __init__(self, system_prompt=SYSTEM_PROMPT, max_context_len=1000, model="gpt-5-mini"):
+    def __init__(self, system_prompt=SYSTEM_PROMPT, max_context_len=100000, model="gpt-5-mini"):
+        """Wrapper around OpenAI model which keeps context (memory)"""
+        
         super().__init__()
         
         self.system_prompt = system_prompt
 
+        self.messages = []
         self.max_context_len = max_context_len
-        self.curr_context_len = 0
+        self.curr_context_len = 0 
         
         self.model = model
+        self.enc = tiktoken.encoding_for_model(model)
         
-        self.messages = [{"role": "system", "content": self.system_prompt}]
+        self.add_to_context(self.system_prompt, "system")
         
         self.client = OpenAI()
         
-    def __call__(self, message):
-        self.messages.append({"role": "user", "content": message})
+    def add_to_context(self, message, role="user", update_len=True):
+        """Helper function to add to context and truncate if necessary"""
         
+        self.messages.append({"role": role, "content": message})
+        
+        if update_len:
+            self.curr_context_len += len(self.enc.encode(message))
+            
+        if self.curr_context_len > self.max_context_len:
+            self.truncate()
+        
+        
+    def __call__(self, message):
+        """Run the inference"""
+        
+        self.add_to_context(message)
         
         stream = self.client.responses.create(
             model=self.model,
@@ -61,18 +81,58 @@ class LLM:
             if event.type == 'error':
                 raise Exception("Error generating text during LLM inference", event)
             
+            if event.type == "incomplete" and event.response.incomplete_details.reason == "max_output_tokens":
+                raise Exception("Max output tokens reached when running inference")
+                        
             if event.type == 'response.output_text.delta':
                 output_text.append(event.delta)
                 yield event.delta
             
             elif event.type == 'response.completed':
-                self.curr_context_len += event.response.usage.total_tokens
-
-        output_text = "".join(output_text)
-        self.messages.append({"role": "assistant", "content": output_text})
+                # this includes reasoning tokens, so we can't just tokenize the output text
+                # to get the token amount. also note that input_tokens length is slightly different than tiktoken expects
+                # (probably due to assistant/user role tokens)
+                self.curr_context_len += event.response.usage.output_tokens
         
-
-def agent(task, debug=False, override_prompt=None):
+        self.add_to_context("".join(output_text), "assistant", update_len=False)
+        
+        
+    def truncate(self):
+        """Chop off previous context if length exceeds limit"""
+        
+        curr_context_len = 0
+        for i in range(len(self.messages)-1, -1, -1):
+            
+            tokenized_message = self.enc.encode(self.messages[i]['content'])
+            curr_message_len = len(tokenized_message)
+            
+            curr_context_len += curr_message_len
+            
+            remaining_tokens = self.max_context_len - curr_context_len
+            
+            if remaining_tokens < 0 :
+                
+                # first truncate all messages before this index
+                self.messages = self.messages[i:]
+                
+                # then partially truncate this message
+                self.messages[-1]['content'] = self.enc.decode(tokenized_message[-remaining_tokens:])
+                
+                self.curr_context_len = self.max_context_len
+                
+                return
+                
+        
+    
+def agent(task, debug=False, override_prompt=None, max_context_len=100000,
+          max_iters=10):
+    """Run the optimization task with an LLM in a loop
+    
+    The LLM will output Verilog code which will then be tested with
+    a simulation and a synthesis. If both pass, the LLM will be provided
+    with PPA information. The agent will then decide whether or not to 
+    keep iterating on the design so as to achieve the best optimization.
+    """
     
     with open('benchmark/metadata.json') as f:
         task_info = json.load(f)
@@ -97,8 +157,8 @@ def agent(task, debug=False, override_prompt=None):
     if debug:
         print(user_prompt)
         
-    model = LLM(system_prompt="" if override_prompt else SYSTEM_PROMPT)
-    
+    model = LLM(system_prompt="" if override_prompt else SYSTEM_PROMPT,
+                max_context_len=max_context_len)
     
     result = []
     messages = model(user_prompt)
@@ -110,7 +170,7 @@ def agent(task, debug=False, override_prompt=None):
     result = "".join(result)
     
     if debug:
-        print(f"Current context length: {model.curr_context_len}\n")
+        print(f"CURRENT CONTEXT WINDOW LENGTH: {model.curr_context_len} tokens\n")
     
     
     return result
