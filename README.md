@@ -12,6 +12,9 @@ This repository introduces AutoPPA - an AI agent which optimizes RTL code for Po
 sudo apt install iverilog
 ```
 
+[Download Yosys](https://github.com/YosysHQ/yosys/blob/main/README.md#installation) for synthesis.
+
+
 ## Benchmark
 
 The benchmark uses RTL code gathered from the [PicoRV32 project](https://github.com/YosysHQ/picorv32). This repo is used because the core is configurable with respect to PPA, and thus useful benchmarks can be created from non-optimized (one particular configuration) vs. optimized RTL (a different configuration).
@@ -49,6 +52,14 @@ cd build
 iverilog -o task1 -DDUT_ORIG ../benchmark/tb/task1.v ../benchmark/orig/task1.v
 vvp task1
 ```
+
+To get metrics from synthesis (i.e. area) you will run the following yosys commands:
+
+```
+cd build
+yosys -p 'read_verilog ../benchmark/orig/task1.v' -p 'synth' -p 'write_verilog synth.v' -l synth.log
+```
+
 
 ## Technology
 
