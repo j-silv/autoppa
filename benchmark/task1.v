@@ -13,12 +13,7 @@ module tb_mul_top;
     wire pcpi_wait;
     wire pcpi_ready;
 
-    //----------------------------------------------------------
-    // DUT selection — choose which module to instantiate
-    //----------------------------------------------------------
-`ifdef DUT_CANDIDATE
-    // Candidate optimized version
-    picorv32_pcpi_mul_candidate dut (
+   `DUT_NAME dut (
         .clk(clk),
         .resetn(resetn),
         .pcpi_valid(pcpi_valid),
@@ -30,56 +25,6 @@ module tb_mul_top;
         .pcpi_wait(pcpi_wait),
         .pcpi_ready(pcpi_ready)
     );
-    initial $display("=== Running test with: picorv32_pcpi_mul_candidate ===");
-
-`elsif DUT_ORIG
-    // Reference non-optimized version
-    picorv32_pcpi_mul_orig dut (
-        .clk(clk),
-        .resetn(resetn),
-        .pcpi_valid(pcpi_valid),
-        .pcpi_insn(pcpi_insn),
-        .pcpi_rs1(pcpi_rs1),
-        .pcpi_rs2(pcpi_rs2),
-        .pcpi_wr(pcpi_wr),
-        .pcpi_rd(pcpi_rd),
-        .pcpi_wait(pcpi_wait),
-        .pcpi_ready(pcpi_ready)
-    );
-    initial $display("=== Running test with: picorv32_pcpi_mul_orig ===");
-
-`elsif DUT_OPT
-    // Ground-truth optimized version
-    picorv32_pcpi_mul_opt dut (
-        .clk(clk),
-        .resetn(resetn),
-        .pcpi_valid(pcpi_valid),
-        .pcpi_insn(pcpi_insn),
-        .pcpi_rs1(pcpi_rs1),
-        .pcpi_rs2(pcpi_rs2),
-        .pcpi_wr(pcpi_wr),
-        .pcpi_rd(pcpi_rd),
-        .pcpi_wait(pcpi_wait),
-        .pcpi_ready(pcpi_ready)
-    );
-    initial $display("=== Running test with: picorv32_pcpi_mul_opt ===");
-
-`else
-    // Default (reference) version
-    DUT_CANDIDATE dut (
-        .clk(clk),
-        .resetn(resetn),
-        .pcpi_valid(pcpi_valid),
-        .pcpi_insn(pcpi_insn),
-        .pcpi_rs1(pcpi_rs1),
-        .pcpi_rs2(pcpi_rs2),
-        .pcpi_wr(pcpi_wr),
-        .pcpi_rd(pcpi_rd),
-        .pcpi_wait(pcpi_wait),
-        .pcpi_ready(pcpi_ready)
-    );
-    initial $display("=== Running test with: picorv32_pcpi_mul_candidate ===");
-`endif
 
     //----------------------------------------------------------
     // Clock generation
@@ -178,14 +123,16 @@ module tb_mul_top;
         do_mul(-32'd10, -32'd4, 3'b001, "MULH signed");
         do_mul(-32'd10, 32'd4, 3'b010, "MULHSU mixed");
         do_mul(32'hFFFFFFFF, 32'hFFFFFFFF, 3'b011, "MULHU unsigned");
-
+            
         repeat (10) @(posedge clk);
-        if (any_failures)
-            $display("\nSome tests FAILED!\n");
-        else
+        if (any_failures) begin
+            $display("\nSome tests FAILED!");
+        end else begin
             $display("\nAll tests PASSED successfully!");
-            $display("DUT time (ns): %0d", cycles*10);
+            $display("TIME: %0d (ns)", cycles*10);
+        end
         $finish;
+
     end
 
 endmodule

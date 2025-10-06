@@ -1,0 +1,9 @@
+[
+    {
+        "name": "task1",
+        "description": "Increase the speed (performance) of this multiply module",
+        "metric": "performance",
+        "baseline": "3100",
+        "units": "ns"
+    }
+]
