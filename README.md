@@ -14,6 +14,17 @@ sudo apt install iverilog
 
 [Download Yosys](https://github.com/YosysHQ/yosys/blob/main/README.md#installation) for synthesis.
 
+```
+sudo apt install yosys
+```
+
+Clone this repository and install it as a `pip` package
+
+```
+git clone https://github.com/j-silv/autoppa.git
+cd autoppa
+pip install -e .
+```
 
 ## Benchmark
 

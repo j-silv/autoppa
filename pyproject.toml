@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools >= 77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autoppa"
+version = "1.0.0"
+dependencies = [
+  "python-dotenv",
+  "openai"
+]
+authors = [ { name = "Justin Silver", email = "justinRsilver@gmail.com"} ]
+description = "PPAgent for RTL code optimization"
+readme = "README.md"
+requires-python = ">=3.10"
+keywords = ["ppa", "rtl", "hdl", "ai", "llm", "ai", "verilog"]
+
+classifiers = [
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.10",
+  "Operating System :: Unix",
+]
+
+license = "LicenseRef-Proprietary"
+license-files = ["LICEN[CS]E*"]
+
+[project.urls]
+Homepage = "https://github.com/j-silv/autoppa"
+Issues = "https://github.com/j-silv/autoppa/issues"
+
+[project.scripts]
+autoppa = "autoppa.main:main"
+
+[tool.setuptools.packages]
+find = {namespaces = false}  # Disable implicit namespaces
