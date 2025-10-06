@@ -99,8 +99,7 @@ module tb_mul_top;
 
 
     reg any_failures;
-    reg passed;
-
+    integer cycles = 0;
     initial any_failures = 0;
 
 
@@ -120,6 +119,8 @@ module tb_mul_top;
         input [127:0] name
     );
         reg [63:0] expected;
+        reg passed;
+ 
     begin
         pcpi_rs1 = rs1;
         pcpi_rs2 = rs2;
@@ -129,8 +130,11 @@ module tb_mul_top;
         @(posedge clk);
         pcpi_valid = 1;
 
-        // Wait until the DUT is ready (handles both styles)
-        wait (pcpi_ready === 1'b1);
+        // Wait for ready
+        while (pcpi_ready != 1'b1) begin
+            @(negedge clk);
+            cycles = cycles + 1;
+        end
 
         // One more clock to latch result
         @(posedge clk);
@@ -177,9 +181,10 @@ module tb_mul_top;
 
         repeat (10) @(posedge clk);
         if (any_failures)
-            $display("\n*** Some tests FAILED! ***\n");
+            $display("\nSome tests FAILED!\n");
         else
-            $display("\n*** All tests PASSED successfully! ***\n");
+            $display("\nAll tests PASSED successfully!");
+            $display("DUT time (ns): %0d", cycles*10);
         $finish;
     end
 
