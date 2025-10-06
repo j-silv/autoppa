@@ -29,7 +29,7 @@ def extract_failed_sim(string):
     raise Exception("Sim result could not be extracted from output")
     
     
-def sim(code: str, *, task:int=1) -> str:
+def sim(code: str, *, task:int=1, debug:bool=False) -> str:
     """Runs Icarus Verilog simulation on input code string
     
     Args:
@@ -37,6 +37,7 @@ def sim(code: str, *, task:int=1) -> str:
         
     Kwargs:
         task: Which benchmark optimization task to run
+        debug: Output additional information from Icarus Verilog
         
     Returns a string indicating either success with
     performance estimation (time in nanoseconds),
@@ -54,6 +55,8 @@ def sim(code: str, *, task:int=1) -> str:
         command = ["iverilog", "-o", dut_name,
                                  f"-DDUT_NAME={dut_name}", f"{dut_name}.v",
                                  f"../benchmark/task{task}.v"]
+        if debug:
+            print(" ".join(command))
         
         # no output if compilation passes successfully
         subprocess.run(command,
@@ -66,10 +69,16 @@ def sim(code: str, *, task:int=1) -> str:
     else:
         try:
             command = ["vvp", dut_name]
+            
+            if debug:
+                print(" ".join(command))
+            
             sim_result = subprocess.run(command,
                                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                     check=True, encoding="utf-8")
             
+            if debug:
+                print(sim_result.stdout)
             
             # because we can only output error with $fatal, but that outputs
             # additional information from verilog testbench which is superfluous

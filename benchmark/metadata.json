@@ -12,5 +12,26 @@
         "metric": "area",
         "baseline": "7147",
         "units": ""
+    },
+    {
+        "name": "task3",
+        "description": "Increase the speed (performance) of this divide module",
+        "metric": "performance",
+        "baseline": "6480",
+        "units": "ns"
+    },
+    {
+        "name": "task4",
+        "description": "Reduce the number of cells (area) of this divide module",
+        "metric": "area",
+        "baseline": "4060",
+        "units": ""
+    },
+    {
+        "name": "task5",
+        "description": "Reduce the energy consumption (power) of this divide module",
+        "metric": "power",
+        "baseline": "",
+        "units": ""
     }
 ]

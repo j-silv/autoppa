@@ -19,7 +19,7 @@ def main():
                         metavar="STEP",
                         help=(f"Step to run. Choices: {steps}"))
     
-    tasks = range(1, 3)
+    tasks = range(1, 6)
     parser.add_argument("task",
                         type=int,
                         default=None,
@@ -33,7 +33,12 @@ def main():
                         default=None,
                         metavar="FILE",
                         help="Path to Verilog source code file for optimization")
+
+    parser.add_argument("-d", "--debug",
+                        action="store_true",
+                        help="Print additional output for debugging purposes")
     
+
     
     # if no arguments specified, then print help 
     args = parser.parse_args(args=None if sys.argv[1:] else ['--help'])
@@ -48,11 +53,11 @@ def main():
         code = f.read()
 
     if args.step == "sim":
-        result = sim(code, task=args.task)
+        result = sim(code, task=args.task, debug=args.debug)
         print(result)
         
     elif args.step == "synth":
-        result = synth(code)
+        result = synth(code, debug=args.debug)
         print(result)
         
 

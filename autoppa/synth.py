@@ -18,12 +18,15 @@ def extract_area(string):
     return area
                 
                 
-def synth(code: str) -> str:
+def synth(code: str, *, debug:bool=False) -> str:
     """Runs Yosys Verilog synthesis on input code string
     
     Args:
         code: A string representing the Verilog code to synthesize
-        
+    
+    Kwargs:
+        debug: Output additional information from Yosys
+    
     Returns a string indicating either success with area estimation (number of cells),
     or failure with an error message
     """ 
@@ -43,9 +46,15 @@ def synth(code: str) -> str:
                    "-p", f"write_verilog {dut_name}.v",
                    "-l", f"{dut_name}.log"]
         
+        if debug:
+            print(" ".join(command))
+            
         synthesis_result = subprocess.run(command,
                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                            check=True, encoding="utf-8")
+        
+        if debug:
+            print(synthesis_result.stdout)
         
         area = extract_area(synthesis_result.stdout)
         

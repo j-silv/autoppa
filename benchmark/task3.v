@@ -86,15 +86,37 @@ module tb;
         pcpi_valid = 0;
 
 
+
         case (funct3)
-            3'b000: expected = $signed({{32{rs1[31]}}, rs1}) * 
-                            $signed({{32{rs2[31]}}, rs2});
-            3'b001: expected = ($signed({{32{rs1[31]}}, rs1}) *
-                                $signed({{32{rs2[31]}}, rs2})) >> 32;
-            3'b010: expected = ($signed({{32{rs1[31]}}, rs1}) *
-                                $unsigned({32'b0, rs2})) >> 32;
-            3'b011: expected = ($unsigned({32'b0, rs1}) *
-                                $unsigned({32'b0, rs2})) >> 32;
+            3'b100: begin // DIV
+                if (rs2 == 0)
+                    expected = -1; // div by zero → -1 per RISC-V spec
+                else if ((rs1 == 32'h80000000) && (rs2 == -1))
+                    expected = 32'h80000000; // overflow
+                else
+                    expected = $signed(rs1) / $signed(rs2);
+            end
+            3'b101: begin // DIVU
+                if (rs2 == 0)
+                    expected = 32'hFFFFFFFF;
+                else
+                    expected = $unsigned(rs1) / $unsigned(rs2);
+            end
+            3'b110: begin // REM
+                if (rs2 == 0)
+                    expected = rs1;
+                else if ((rs1 == 32'h80000000) && (rs2 == -1))
+                    expected = 0;
+                else
+                    expected = $signed(rs1) % $signed(rs2);
+            end
+            3'b111: begin // REMU
+                if (rs2 == 0)
+                    expected = rs1;
+                else
+                    expected = $unsigned(rs1) % $unsigned(rs2);
+            end
+            default: expected = 0;
         endcase
 
 
@@ -117,12 +139,31 @@ module tb;
         pcpi_valid = 0;
         #8 resetn = 1;
 
-        do_op(32'd3, 32'd7, 3'b000, "MUL");
-        do_op(-32'd3, 32'd7, 3'b000, "MUL negative");
-        do_op(32'd1000, 32'd1000, 3'b000, "MUL large");
-        do_op(-32'd10, -32'd4, 3'b001, "MULH signed");
-        do_op(-32'd10, 32'd4, 3'b010, "MULHSU mixed");
-        do_op(32'hFFFFFFFF, 32'hFFFFFFFF, 3'b011, "MULHU unsigned");
+        // ---- SIGNED DIV ----
+        do_op( 20,   3, 3'b100, "DIV 20 / 3");
+        do_op(-20,   3, 3'b100, "DIV -20 / 3");
+        do_op( 20,  -3, 3'b100, "DIV 20 / -3");
+        do_op(-20,  -3, 3'b100, "DIV -20 / -3");
+        do_op(32'h80000000, -1, 3'b100, "DIV overflow");
+        do_op(20,   0, 3'b100, "DIV divide-by-zero");
+
+        // ---- UNSIGNED DIV ----
+        do_op( 20,   3, 3'b101, "DIVU 20 / 3");
+        do_op( 20,   0, 3'b101, "DIVU divide-by-zero");
+        do_op(32'hFFFFFFFF, 2, 3'b101, "DIVU max/2");
+
+        // ---- SIGNED REM ----
+        do_op( 20,   3, 3'b110, "REM 20 % 3");
+        do_op(-20,   3, 3'b110, "REM -20 % 3");
+        do_op( 20,  -3, 3'b110, "REM 20 % -3");
+        do_op(-20,  -3, 3'b110, "REM -20 % -3");
+        do_op(32'h80000000, -1, 3'b110, "REM overflow");
+        do_op(20,   0, 3'b110, "REM divide-by-zero");
+
+        // ---- UNSIGNED REM ----
+        do_op( 20,   3, 3'b111, "REMU 20 % 3");
+        do_op( 20,   0, 3'b111, "REMU divide-by-zero");
+        do_op(32'hFFFFFFFF, 2, 3'b111, "REMU max%2");
             
         repeat (10) @(posedge clk);
         if (any_failures) begin
