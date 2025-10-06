@@ -58,7 +58,9 @@ def main():
     
     subparser = subparsers.add_parser('agent', help='Optimize a design with an LLM')
     subparser.add_argument("task", **task_arg)
-
+    subparser.add_argument("-p", "--prompt",
+                           default=None,
+                           help="If provided, overwrite the prompt to the LLM (useful for debugging)")
     
     # if no arguments specified, then print help 
     args = parser.parse_args(args=None if sys.argv[1:] else ['--help'])
@@ -81,9 +83,9 @@ def main():
         result = synth(code, debug=args.debug)
     
     elif args.step == "agent":
-        result = agent(args.task, debug=args.debug)
-    
+        result = agent(args.task, debug=args.debug, override_prompt=args.prompt)
         
+    
     print(result)
         
 

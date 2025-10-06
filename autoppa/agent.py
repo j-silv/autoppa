@@ -37,6 +37,8 @@ class LLM:
         self.system_prompt = system_prompt
 
         self.max_context_len = max_context_len
+        self.curr_context_len = 0
+        
         self.model = model
         
         self.messages = [{"role": "system", "content": self.system_prompt}]
@@ -46,19 +48,32 @@ class LLM:
     def __call__(self, message):
         self.messages.append({"role": "user", "content": message})
         
-        response = self.client.responses.create(
+        
+        stream = self.client.responses.create(
             model=self.model,
             input=self.messages,
-            service_tier="flex"
+            stream=True
         )
         
-        self.messages.append({"role": "assistant", "content": response.output_text})
-        
-        return response.output_text
-    
-    
+        output_text = []
+        for event in stream:
+            
+            if event.type == 'error':
+                raise Exception("Error generating text during LLM inference", event)
+            
+            if event.type == 'response.output_text.delta':
+                output_text.append(event.delta)
+                yield event.delta
+            
+            elif event.type == 'response.completed':
+                self.curr_context_len += event.response.usage.total_tokens
 
-def agent(task, debug=False):
+        output_text = "".join(output_text)
+        self.messages.append({"role": "assistant", "content": output_text})
+        
+
+def agent(task, debug=False, override_prompt=None):
+    
     with open('benchmark/metadata.json') as f:
         task_info = json.load(f)
 
@@ -75,12 +90,27 @@ def agent(task, debug=False):
         f"BASELINE VERILOG CODE:\n{baseline_code}\n\n"
         f"TESTBENCH VERILOG CODE:\n\n{testbench_code}\n"
     )
-    
+
+    if override_prompt:
+        user_prompt = override_prompt
+
     if debug:
         print(user_prompt)
-
-    model = LLM()
+        
+    model = LLM(system_prompt="" if override_prompt else SYSTEM_PROMPT)
     
-    result = model(user_prompt)
+    
+    result = []
+    messages = model(user_prompt)
+
+    for message in messages:
+        result.append(message)
+        print(message, end="")
+    print()
+    result = "".join(result)
+    
+    if debug:
+        print(f"Current context length: {model.curr_context_len}\n")
+    
     
     return result
