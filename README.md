@@ -18,6 +18,12 @@ sudo apt install iverilog
 sudo apt install yosys
 ```
 
+[Download OpenSTA](https://github.com/parallaxsw/OpenSTA) for power estimation.
+
+```
+sudo apt install opensta
+```
+
 Clone this repository and install it as a `pip` package
 
 ```
@@ -63,7 +69,7 @@ autoppa sim 1 baseline/reference/task1.v
 Then we synthesize the design to get area metrics:
 
 ```
-autoppa synth 1 baseline/reference/task1.v
+autoppa synth baseline/reference/task1.v
 ```
 
 ## Baseline
@@ -74,9 +80,14 @@ There are mainly 3 baselines considered for the benchmark:
 2. Optimized design (mix between Pico configuration flags/ChatGPT iteratively prompted)
 3. Yosys optimization command-line flags
 
-## Technology
+## Agent
 
-- OpenAI `gpt-5-mini` model as the LLM brain
-- Icarus Verilog for simulation
-- Yosys for RTL synthesis
-- Python for everything else
+If you run the 'agent' step, the AI will attempt to achieve one of the specified optimization tasks. For example:
+
+```
+autoppa agent 1
+```
+
+## Acknowledgements
+
+- Adapted [VerilogCoder's prompt templates](https://github.com/NVlabs/VerilogCoder/blob/8b13108869f276c7b644dd88beabcb401a5cfa92/hardware_agent/examples/VerilogCoder/prompt_templates.py)

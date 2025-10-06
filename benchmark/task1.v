@@ -49,8 +49,12 @@ module tb;
 
 
     initial begin
+
+        $dumpfile("tb.vcd");
+        $dumpvars(0, tb);
+
         #1000000; // 1,000,000 ns = 1 ms, adjust as needed
-        $display("*** TIMEOUT: Simulation exceeded maximum time ***");
+        $display("*** TIMEOUT: Simulation FAILED due to exceeded maximum time ***");
         $finish;
     end
 
