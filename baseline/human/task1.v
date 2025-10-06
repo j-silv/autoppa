@@ -1,5 +1,5 @@
 
-module picorv32_pcpi_mul_opt #(
+module picorv32_pcpi_mul #(
 	parameter EXTRA_MUL_FFS = 0,
 	parameter EXTRA_INSN_FFS = 0,
 	parameter MUL_CLKGATE = 0

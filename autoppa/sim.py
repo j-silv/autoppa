@@ -37,6 +37,10 @@ def sim(code: str, *, task:int=1) -> str:
         
     Kwargs:
         task: Which benchmark optimization task to run
+        
+    Returns a string indicating either success with
+    performance estimation (time in nanoseconds),
+    or failure with an error message
     """    
     dut_name = extract_module_name(code)
     

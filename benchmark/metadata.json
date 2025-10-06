@@ -5,5 +5,12 @@
         "metric": "performance",
         "baseline": "3100",
         "units": "ns"
+    },
+    {
+        "name": "task2",
+        "description": "Reduce the number of cells (area) of this multiply module",
+        "metric": "area",
+        "baseline": "7147",
+        "units": ""
     }
 ]

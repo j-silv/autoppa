@@ -1,5 +1,5 @@
 
-module picorv32_pcpi_mul_orig #(
+module picorv32_pcpi_mul #(
 	parameter STEPS_AT_ONCE = 1,
 	parameter CARRY_CHAIN = 4
 ) (

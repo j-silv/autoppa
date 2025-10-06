@@ -1,6 +1,8 @@
 import argparse
 import sys
 from .sim import sim
+from .synth import synth
+
 import os 
 
 def main():
@@ -17,13 +19,13 @@ def main():
                         metavar="STEP",
                         help=(f"Step to run. Choices: {steps}"))
     
-    tasks = range(1, 2)
+    tasks = range(1, 3)
     parser.add_argument("task",
                         type=int,
                         default=None,
                         choices=tasks,
                         metavar="TASK",
-                        help=f"Benchmark task to run. Choices: {list(tasks)}")
+                        help=f"Benchmark task to run (ignored if STEP != 'sim'). Choices: {list(tasks)}")
 
 
     parser.add_argument("file",
@@ -39,16 +41,19 @@ def main():
     if not os.path.isfile(args.file):
         raise Exception("Not a valid source code file")
     
-    
+
+    # because LLM will call tools with just strings,
+    # but if we call these from command lines we have filepaths
+    with open(args.file, "r") as f:
+        code = f.read()
+
     if args.step == "sim":
-        with open(args.file, "r") as f:
-            code = f.read()
-        
         result = sim(code, task=args.task)
         print(result)
         
     elif args.step == "synth":
-        pass
+        result = synth(code)
+        print(result)
         
 
 
