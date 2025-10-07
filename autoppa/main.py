@@ -82,16 +82,16 @@ def main():
 
     if args.step == "sim":
         result = sim(code, task=args.task, debug=args.debug)
+        print(result)
         
     elif args.step == "synth":
         result = synth(code, debug=args.debug)
+        print(result)
     
     elif args.step == "agent":
         result = agent(args.task, debug=args.debug,
                        override_prompt=args.prompt, max_context_len=args.context_len)
-        
     
-    print(result)
         
 
 if __name__ == "__main__":

@@ -45,6 +45,9 @@ def sim(code: str, *, task:int=1, debug:bool=False) -> str:
     """    
     dut_name = extract_module_name(code)
     
+    # otherwise we will keep creating build directories
+    ROOT_DIR = os.path.dirname(os.path.dirname(__file__))
+    os.chdir(ROOT_DIR)
     os.makedirs("build", exist_ok=True)
     os.chdir("build")
     

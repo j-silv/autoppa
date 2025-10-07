@@ -161,12 +161,15 @@ def agent(task_num, debug=False, override_prompt=None, max_context_len=100000,
 
     if override_prompt:
         user_prompt = override_prompt
-
-    if debug:
-        print(user_prompt)
         
     model = LLM(system_prompt="" if override_prompt else SYSTEM_PROMPT,
                 max_context_len=max_context_len)
+    
+
+    if debug:
+        print("\n---------------- SYSTEM ------------------\n")
+        print(model.system_prompt) 
+
     
     #########################################################
     # Agentic loop here (TODO: make agent into a class)
@@ -174,8 +177,14 @@ def agent(task_num, debug=False, override_prompt=None, max_context_len=100000,
     for i in range(max_iters):
         
         result = []
+
+        print("\n---------------- USER ------------------\n")
+        print(user_prompt)   
+
         messages = model(user_prompt)
 
+
+        print("\n---------------- ASSISTANT ------------------\n")
         for message in messages:
             result.append(message)
             print(message, end="")
@@ -189,7 +198,9 @@ def agent(task_num, debug=False, override_prompt=None, max_context_len=100000,
         sim_result = sim(result, task=task_num, debug=debug)
         synth_result = synth(result, debug=debug)
         
-        user_prompt = "Feedback from compilation, simulation, and synthesis tools:\n\n" + sim_result + synth_result
+        user_prompt = "Feedback from compilation, simulation, and synthesis tools:\n\n" + sim_result  + "\n" + synth_result
+        
+        print("\n---------------- TOOLS ------------------\n")
         print(user_prompt)
 
         print("Agent step done.")
