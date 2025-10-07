@@ -2,6 +2,8 @@ from openai import OpenAI
 import json
 import tiktoken
 from dotenv import load_dotenv
+from .sim import sim
+from .synth import synth
 
 load_dotenv()
 
@@ -122,28 +124,34 @@ class LLM:
                 
                 return
                 
-        
     
-def agent(task, debug=False, override_prompt=None, max_context_len=100000,
-          max_iters=10):
+def agent(task_num, debug=False, override_prompt=None, max_context_len=100000,
+          max_iters=5):
     """Run the optimization task with an LLM in a loop
     
     The LLM will output Verilog code which will then be tested with
     a simulation and a synthesis. If both pass, the LLM will be provided
     with PPA information. The agent will then decide whether or not to 
     keep iterating on the design so as to achieve the best optimization.
+    
+    The iterations stop when we reach 'max_iters' or the user manually 
+    stops the loop.
+    
+    The best LLM output (with respect to PPA) is saved. At the end of the loop,
+    we output this module again, along with the PPA metrics.
     """
     
     with open('benchmark/metadata.json') as f:
         task_info = json.load(f)
 
-    with open(f"baseline/reference/task{task}.v", "r") as f:
+    task = task_info[task_num-1]
+
+    with open(f"baseline/reference/task{task_num}.v", "r") as f:
         baseline_code = f.read()
     
-    with open(f"benchmark/task{task}.v", "r") as f:
+    with open(f"benchmark/task{task_num}.v", "r") as f:
         testbench_code = f.read()
         
-    task = task_info[task-1]
     user_prompt = (
         f"\nTASK DESCRIPTION:\n{task['description']}\n\n"
         f"BASELINE METRIC:\n{task['baseline']} {task['units']}\n\n"
@@ -160,17 +168,36 @@ def agent(task, debug=False, override_prompt=None, max_context_len=100000,
     model = LLM(system_prompt="" if override_prompt else SYSTEM_PROMPT,
                 max_context_len=max_context_len)
     
-    result = []
-    messages = model(user_prompt)
+    #########################################################
+    # Agentic loop here (TODO: make agent into a class)
+    #########################################################
+    for i in range(max_iters):
+        
+        result = []
+        messages = model(user_prompt)
 
-    for message in messages:
-        result.append(message)
-        print(message, end="")
-    print()
-    result = "".join(result)
-    
-    if debug:
-        print(f"CURRENT CONTEXT WINDOW LENGTH: {model.curr_context_len} tokens\n")
-    
+        for message in messages:
+            result.append(message)
+            print(message, end="")
+        print()
+        result = "".join(result)
+        
+        if debug:
+            print(f"CURRENT CONTEXT WINDOW LENGTH: {model.curr_context_len} tokens\n")
+        
+        # Tool feedback here
+        sim_result = sim(result, task=task_num, debug=debug)
+        synth_result = synth(result, debug=debug)
+        
+        user_prompt = "Feedback from compilation, simulation, and synthesis tools:\n\n" + sim_result + synth_result
+        print(user_prompt)
+
+        print("Agent step done.")
+        cont = input("Continue? [y/n] ")
+        if cont.lower() != "y":
+            break
+        
+    else:
+        print("Max iters reached. Exiting agent loop.")    
     
     return result
