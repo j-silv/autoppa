@@ -34,17 +34,16 @@ def synth(code: str, *, debug:bool=False) -> str:
     dut_name = extract_module_name(code)
     
     os.makedirs("build", exist_ok=True)
-    os.chdir("build")
     
-    with open(f"{dut_name}.v", "w") as f:
+    with open(f"build/{dut_name}.v", "w") as f:
         f.write(code)
 
     try:
         command = ["yosys",
-                   "-p", f"read_verilog {dut_name}.v",
+                   "-p", f"read_verilog build/{dut_name}.v",
                    "-p", "synth",
-                   "-p", f"write_verilog {dut_name}.v",
-                   "-l", f"{dut_name}.log"]
+                   "-p", f"write_verilog build/{dut_name}.v",
+                   "-l", f"build/{dut_name}.log"]
         
         if debug:
             print(" ".join(command))
@@ -52,9 +51,6 @@ def synth(code: str, *, debug:bool=False) -> str:
         synthesis_result = subprocess.run(command,
                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                            check=True, encoding="utf-8")
-        
-        if debug:
-            print(synthesis_result.stdout)
         
         area = extract_area(synthesis_result.stdout)
         

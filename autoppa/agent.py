@@ -1,6 +1,8 @@
 from openai import OpenAI
 import json
 import tiktoken
+from dataclasses import dataclass
+from enum import Enum
 from dotenv import load_dotenv
 from .sim import sim
 from .synth import synth
@@ -33,6 +35,19 @@ Rules:
     n = q;
   end
 """.strip()
+
+class Role(Enum):
+    """Simple enum for different message types"""
+    SYSTEM = "system"
+    USER = "user"
+    ASSISTANT = "assistant"
+    TOOL = "tool"
+
+@dataclass
+class Message:
+    """Simple wrapper for when AI agent yields output"""
+    role: Role
+    content: str
 
 
 class LLM:
@@ -123,92 +138,108 @@ class LLM:
                 self.curr_context_len = self.max_context_len
                 
                 return
+
+class Agent:
+    def __init__(self, task_num, debug=False,
+                 system_prompt=None,
+                 initial_prompt=None, max_context_len=100000,
+                 max_iters=5):
+        
+        """AI agent which tries to optimize Verilog HDL code for a given task
+        
+        In this initialization, we load the task information from the metadata,
+        create the LLM model to perform inference, and then prepare the initial
+        prompt passed which will kick off the AI agent loop
+        """
+
+        self.debug = debug
+        self.max_iters = max_iters
+        
+        with open('benchmark/metadata.json') as f:
+            task_info = json.load(f)
+
+        self.task = task_info[task_num-1]
+        self.task_num = task_num
+
+        with open(f"baseline/reference/task{task_num}.v", "r") as f:
+            baseline_code = f.read()
+        
+        with open(f"benchmark/task{task_num}.v", "r") as f:
+            testbench_code = f.read()
+        
+        if initial_prompt:
+            self.initial_prompt = initial_prompt
+        else:
+            self.initial_prompt = (
+                f"\nTASK DESCRIPTION:\n{self.task['description']}\n\n"
+                f"BASELINE METRIC:\n{self.task['baseline']} {self.task['units']}\n\n"
+                f"BASELINE VERILOG CODE:\n{baseline_code}\n\n"
+                f"TESTBENCH VERILOG CODE:\n\n{testbench_code}\n"
+            )
+            
+        self.model = LLM(system_prompt=system_prompt if system_prompt else SYSTEM_PROMPT,
+                         max_context_len=max_context_len)
+        
+    def __call__(self):
+        """Run the optimization task with an LLM in a loop
+        
+        The LLM will output Verilog code which will then be tested with
+        a simulation and a synthesis. If both pass, the LLM will be provided
+        with PPA information. The agent will then decide whether or not to 
+        keep iterating on the design so as to achieve the best optimization.
+        
+        The iterations stop when we reach 'max_iters' or the user manually 
+        stops the loop.
+        
+        The best LLM output (with respect to PPA) is saved. At the end of the loop,
+        we output this module again, along with the PPA metrics.
+        
+        This function is a generator which yields a tuple. The first element is the
+        output 'role' (system/user/assistant/tool), and the second element is the 
+        actual message.
+        """
+
+        yield Message(Role.SYSTEM, self.model.system_prompt) 
+
+        user_prompt = self.initial_prompt
+        
+        for i in range(self.max_iters):
+            
+            if self.debug:
+                print(f"ITERATION {i}/{self.max_iters}")
+            
+            result = []
+            yield Message(Role.USER, user_prompt)
+
+            messages = self.model(user_prompt)
+
+            for message in messages:
+                result.append(message)
+                yield Message(Role.ASSISTANT, message)
                 
-    
-def agent(task_num, debug=False, override_prompt=None, max_context_len=100000,
-          max_iters=5):
-    """Run the optimization task with an LLM in a loop
-    
-    The LLM will output Verilog code which will then be tested with
-    a simulation and a synthesis. If both pass, the LLM will be provided
-    with PPA information. The agent will then decide whether or not to 
-    keep iterating on the design so as to achieve the best optimization.
-    
-    The iterations stop when we reach 'max_iters' or the user manually 
-    stops the loop.
-    
-    The best LLM output (with respect to PPA) is saved. At the end of the loop,
-    we output this module again, along with the PPA metrics.
-    """
-    
-    with open('benchmark/metadata.json') as f:
-        task_info = json.load(f)
+            result = "".join(result)
+            
+            if self.debug:
+                print(f"\nCURRENT CONTEXT WINDOW LENGTH: {self.model.curr_context_len} tokens\n")
+            
+            user_prompt = ["Feedback from compilation, simulation, and synthesis tools:\n\n"]
+            yield Message(Role.TOOL, user_prompt[-1])
+            
+            sim_result = sim(result, task=self.task_num, debug=self.debug)
+            user_prompt.append(sim_result + "\n")
+            yield Message(Role.TOOL, user_prompt[-1])
+            
+            synth_result = synth(result, debug=self.debug)
+            user_prompt.append(synth_result + "\n")
+            yield Message(Role.TOOL, user_prompt[-1])
+            
+            user_prompt = "".join(user_prompt)
 
-    task = task_info[task_num-1]
-
-    with open(f"baseline/reference/task{task_num}.v", "r") as f:
-        baseline_code = f.read()
-    
-    with open(f"benchmark/task{task_num}.v", "r") as f:
-        testbench_code = f.read()
+            print("Agent step done.")
+            cont = input("Continue? [y/n] ")
+            if cont.lower() != "y":
+                break
+            
+        else:
+            print("Max iters reached. Exiting agent loop.")    
         
-    user_prompt = (
-        f"\nTASK DESCRIPTION:\n{task['description']}\n\n"
-        f"BASELINE METRIC:\n{task['baseline']} {task['units']}\n\n"
-        f"BASELINE VERILOG CODE:\n{baseline_code}\n\n"
-        f"TESTBENCH VERILOG CODE:\n\n{testbench_code}\n"
-    )
-
-    if override_prompt:
-        user_prompt = override_prompt
-        
-    model = LLM(system_prompt="" if override_prompt else SYSTEM_PROMPT,
-                max_context_len=max_context_len)
-    
-
-    if debug:
-        print("\n---------------- SYSTEM ------------------\n")
-        print(model.system_prompt) 
-
-    
-    #########################################################
-    # Agentic loop here (TODO: make agent into a class)
-    #########################################################
-    for i in range(max_iters):
-        
-        result = []
-
-        print("\n---------------- USER ------------------\n")
-        print(user_prompt)   
-
-        messages = model(user_prompt)
-
-
-        print("\n---------------- ASSISTANT ------------------\n")
-        for message in messages:
-            result.append(message)
-            print(message, end="")
-        print()
-        result = "".join(result)
-        
-        if debug:
-            print(f"CURRENT CONTEXT WINDOW LENGTH: {model.curr_context_len} tokens\n")
-        
-        # Tool feedback here
-        sim_result = sim(result, task=task_num, debug=debug)
-        synth_result = synth(result, debug=debug)
-        
-        user_prompt = "Feedback from compilation, simulation, and synthesis tools:\n\n" + sim_result  + "\n" + synth_result
-        
-        print("\n---------------- TOOLS ------------------\n")
-        print(user_prompt)
-
-        print("Agent step done.")
-        cont = input("Continue? [y/n] ")
-        if cont.lower() != "y":
-            break
-        
-    else:
-        print("Max iters reached. Exiting agent loop.")    
-    
-    return result

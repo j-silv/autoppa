@@ -88,6 +88,15 @@ If you run the 'agent' step, the AI will attempt to achieve one of the specified
 autoppa agent 1
 ```
 
+## Server
+
+Another way to interact with the agent is to set up a Streamlit server. An additional benefit of this is that the evolution of the optimization task is clearer.
+
+```
+make serve
+```
+
 ## Acknowledgements
 
+- [PicoRV32 project](https://github.com/YosysHQ/picorv32)
 - Adapted [VerilogCoder's prompt templates](https://github.com/NVlabs/VerilogCoder/blob/8b13108869f276c7b644dd88beabcb401a5cfa92/hardware_agent/examples/VerilogCoder/prompt_templates.py)

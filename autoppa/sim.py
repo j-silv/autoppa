@@ -45,19 +45,15 @@ def sim(code: str, *, task:int=1, debug:bool=False) -> str:
     """    
     dut_name = extract_module_name(code)
     
-    # otherwise we will keep creating build directories
-    ROOT_DIR = os.path.dirname(os.path.dirname(__file__))
-    os.chdir(ROOT_DIR)
     os.makedirs("build", exist_ok=True)
-    os.chdir("build")
     
-    with open(f"{dut_name}.v", "w") as f:
+    with open(f"build/{dut_name}.v", "w") as f:
         f.write(code)
     
     try:
-        command = ["iverilog", "-o", dut_name,
-                                 f"-DDUT_NAME={dut_name}", f"{dut_name}.v",
-                                 f"../benchmark/task{task}.v"]
+        command = ["iverilog", "-o", f"build/{dut_name}",
+                                 f"-DDUT_NAME={dut_name}", f"build/{dut_name}.v",
+                                 f"benchmark/task{task}.v"]
         if debug:
             print(" ".join(command))
         
@@ -71,7 +67,7 @@ def sim(code: str, *, task:int=1, debug:bool=False) -> str:
     
     else:
         try:
-            command = ["vvp", dut_name]
+            command = ["vvp", f"build/{dut_name}"]
             
             if debug:
                 print(" ".join(command))
@@ -79,9 +75,6 @@ def sim(code: str, *, task:int=1, debug:bool=False) -> str:
             sim_result = subprocess.run(command,
                                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                     check=True, encoding="utf-8")
-            
-            if debug:
-                print(sim_result.stdout)
             
             # because we can only output error with $fatal, but that outputs
             # additional information from verilog testbench which is superfluous

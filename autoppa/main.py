@@ -3,7 +3,7 @@ import sys
 import os 
 from .sim import sim
 from .synth import synth
-from .agent import agent
+from .agent import Agent, Role
 
 
 def main():
@@ -60,7 +60,7 @@ def main():
     subparser.add_argument("task", **task_arg)
     subparser.add_argument("-p", "--prompt",
                            default=None,
-                           help="If provided, overwrite the prompt to the LLM (useful for debugging)")
+                           help="If provided, overwrite the system prompt to the LLM (useful for debugging)")
     subparser.add_argument("-c", "--context-len",
                            type=int,
                            default=100000,
@@ -89,10 +89,19 @@ def main():
         print(result)
     
     elif args.step == "agent":
-        result = agent(args.task, debug=args.debug,
-                       override_prompt=args.prompt, max_context_len=args.context_len)
-    
+        agent = Agent(args.task, debug=args.debug,
+                       system_prompt=args.prompt,
+                       max_context_len=args.context_len)
         
+        messages = agent()
+        current_role = None
+        for message in messages:
+            if message.role != current_role:
+                current_role = message.role 
+                print(f"\n\n--------------------- {current_role.name.upper()} ------------------------\n\n")
+            
+            print(message.content, end="")
+        print()
 
 if __name__ == "__main__":
     main()
