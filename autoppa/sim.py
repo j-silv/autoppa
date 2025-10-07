@@ -45,14 +45,16 @@ def sim(code: str, *, task:int=1, debug:bool=False) -> str:
     """    
     dut_name = extract_module_name(code)
     
-    os.makedirs("build", exist_ok=True)
+    build_dir = os.path.join("build", f"task{task}")
     
-    with open(f"build/{dut_name}.v", "w") as f:
+    os.makedirs(build_dir, exist_ok=True)
+    
+    with open(f"{build_dir}/{dut_name}.v", "w") as f:
         f.write(code)
     
     try:
-        command = ["iverilog", "-o", f"build/{dut_name}",
-                                 f"-DDUT_NAME={dut_name}", f"build/{dut_name}.v",
+        command = ["iverilog", "-o", f"{build_dir}/{dut_name}",
+                                 f"-DDUT_NAME={dut_name}", f"{build_dir}/{dut_name}.v",
                                  f"benchmark/task{task}.v"]
         if debug:
             print(" ".join(command))
@@ -67,7 +69,7 @@ def sim(code: str, *, task:int=1, debug:bool=False) -> str:
     
     else:
         try:
-            command = ["vvp", f"build/{dut_name}"]
+            command = ["vvp", f"{build_dir}/{dut_name}"]
             
             if debug:
                 print(" ".join(command))

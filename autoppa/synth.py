@@ -33,17 +33,29 @@ def synth(code: str, *, debug:bool=False) -> str:
     
     dut_name = extract_module_name(code)
     
-    os.makedirs("build", exist_ok=True)
+    build_dir = "build/synth"
     
-    with open(f"build/{dut_name}.v", "w") as f:
+    os.makedirs(build_dir, exist_ok=True)
+    
+    with open(f"{build_dir}/{dut_name}.v", "w") as f:
         f.write(code)
 
     try:
         command = ["yosys",
-                   "-p", f"read_verilog build/{dut_name}.v",
+                   "-p", f"read_verilog {build_dir}/{dut_name}.v",
+                   "-p", f"hierarchy -top {dut_name}",
                    "-p", "synth",
-                   "-p", f"write_verilog build/{dut_name}.v",
-                   "-l", f"build/{dut_name}.log"]
+                #    "-p", "proc; opt",
+                #    "-p", "memory; opt",
+                #    "-p", "fsm; opt",
+                   "-p", "techmap; opt",
+                   "-p", "dfflibmap -liberty benchmark/sky130hd_tt.lib",
+                   "-p", "abc -liberty benchmark/sky130hd_tt.lib",
+                   "-p", "clean",
+                   "-p", f"write_verilog {build_dir}/synth_{dut_name}.v",
+                   "-l", f"{build_dir}/{dut_name}.log"]
+             
+
         
         if debug:
             print(" ".join(command))

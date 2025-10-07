@@ -3,6 +3,8 @@ import sys
 import os 
 from .sim import sim
 from .synth import synth
+from .power import power
+from .benchmark import benchmark
 from .agent import Agent, Role
 
 
@@ -53,6 +55,28 @@ def main():
     subparser.add_argument("file", **file_arg)
 
     #############
+    # Power
+    #############
+
+    subparser = subparsers.add_parser('power', help='Power with OpenSTA')
+    subparser.add_argument("task", **task_arg)
+    subparser.add_argument("file", **file_arg)
+
+
+    #############
+    # Benchmark
+    #############
+
+    subparser = subparsers.add_parser('benchmark', help='Run complete benchmark test')
+    subparser.add_argument("task", **task_arg)
+    
+    baselines = ["reference", "optimized"]
+    subparser.add_argument("baseline",
+                           choices=baselines,
+                           help=f"Which baseline to run. Choices: {list(baselines)}",
+                           metavar="BASELINE",)
+
+    #############
     # Agent
     #############
     
@@ -88,6 +112,14 @@ def main():
         result = synth(code, debug=args.debug)
         print(result)
     
+    elif args.step == "power":
+        result = power(code, task=args.task, debug=args.debug)
+        print(result)
+
+    elif args.step == "benchmark":
+        benchmark(task_num=args.task, baseline=args.baseline, debug=args.debug)
+    
+  
     elif args.step == "agent":
         agent = Agent(args.task, debug=args.debug,
                        system_prompt=args.prompt,

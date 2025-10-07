@@ -1,5 +1,5 @@
 
-module picorv32_pcpi_mul #(
+module task1_opt #(
 	parameter EXTRA_MUL_FFS = 0,
 	parameter EXTRA_INSN_FFS = 0,
 	parameter MUL_CLKGATE = 0

@@ -1,6 +1,8 @@
 `timescale 1ns / 1ps
 
-module tb;
+`define STRINGIFY(str, DEFINE) $sformatf(str, `"DEFINE`")
+
+module task1_tb;
 
     reg clk;
     reg resetn;
@@ -49,7 +51,8 @@ module tb;
 
 
     initial begin
-
+        $dumpfile(`STRINGIFY("build/task1/%s.vcd", `DUT_NAME));
+        $dumpvars(0, task1_tb);
         #1000000; // 1,000,000 ns = 1 ms, adjust as needed
         $display("TIMEOUT: Simulation FAILED due to exceeded maximum time");
         $finish;

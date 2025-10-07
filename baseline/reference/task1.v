@@ -1,5 +1,5 @@
 
-module picorv32_pcpi_mul #(
+module task1_ref #(
 	parameter STEPS_AT_ONCE = 1,
 	parameter CARRY_CHAIN = 4
 ) (

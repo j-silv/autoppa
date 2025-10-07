@@ -1,4 +1,4 @@
-module picorv32_pcpi_div (
+module task3_ref (
 	input clk, resetn,
 
 	input             pcpi_valid,

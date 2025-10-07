@@ -31,7 +31,7 @@
         "name": "task5",
         "description": "Reduce the energy consumption (power) of this divide module",
         "metric": "power",
-        "baseline": "",
-        "units": ""
+        "baseline": "3.2000",
+        "units": "mW"
     }
 ]

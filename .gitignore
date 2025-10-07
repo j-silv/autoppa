@@ -5,3 +5,5 @@ venv
 *.pdf
 build
 *.egg-info
+*.lib
+*.gz
