@@ -6,6 +6,7 @@ from enum import Enum
 from dotenv import load_dotenv
 from .sim import sim
 from .synth import synth
+from .power import power
 
 load_dotenv()
 
@@ -222,7 +223,7 @@ class Agent:
             if self.debug:
                 print(f"\nCURRENT CONTEXT WINDOW LENGTH: {self.model.curr_context_len} tokens\n")
             
-            user_prompt = ["Feedback from compilation, simulation, and synthesis tools:\n\n"]
+            user_prompt = ["Feedback from compilation, simulation, synthesis, and power tools:\n\n"]
             yield Message(Role.TOOL, user_prompt[-1])
             
             sim_result = sim(result, task=self.task_num, debug=self.debug)
@@ -231,6 +232,10 @@ class Agent:
             
             synth_result = synth(result, debug=self.debug)
             user_prompt.append(synth_result + "\n")
+            yield Message(Role.TOOL, user_prompt[-1])
+            
+            power_result = power(result, task=self.task_num, debug=self.debug)
+            user_prompt.append(power_result + "\n")
             yield Message(Role.TOOL, user_prompt[-1])
             
             user_prompt = "".join(user_prompt)

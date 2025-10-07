@@ -1,6 +1,7 @@
 import streamlit as st
 from autoppa.agent import Agent, Role, Message
 import time
+import json
 
 
 @st.cache_resource(show_spinner="Initializing AI agent...")
@@ -21,23 +22,6 @@ def role_to_emoji(role):
     if role == Role.TOOL:
         return ":material/build:"
 
-
-# def dummy():
-#     yield Message(Role.SYSTEM, "1")
-#     time.sleep(0.5)
-#     yield Message(Role.USER, "2")
-#     time.sleep(0.5)
-#     yield Message(Role.ASSISTANT, "3")
-#     time.sleep(0.5)
-#     yield Message(Role.ASSISTANT, "4")
-#     time.sleep(0.5)
-#     yield Message(Role.ASSISTANT, "5")
-#     time.sleep(0.5)
-#     yield Message(Role.ASSISTANT, "6")
-#     time.sleep(0.5)
-#     yield Message(Role.TOOL, "7")
-#     time.sleep(0.5)
-
 st.title("AutoPPA")
 st.text("PPAgent for RTL code optimization")
 
@@ -45,25 +29,29 @@ st.text("PPAgent for RTL code optimization")
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-if "task_num" not in st.session_state:
-    st.session_state.task_num = 1
-
-agent = init_agent(st.session_state.task_num)
-
 
 # --- Display chat history ---
 for message in st.session_state.messages:
     with st.chat_message(message["role"].value,
                          avatar=role_to_emoji(message["role"])):
         
-        if message["role"] == Role.ASSISTANT:
-            st.code(message["content"])
-        else:
-            st.text(message["content"])
+        with st.container(height=500):
+            if message["role"] == Role.ASSISTANT:
+                st.code(message["content"], language="verilog", wrap_lines=True)
+            else:
+                st.text(message["content"])
 
+
+with open('benchmark/metadata.json') as f:
+    task_info = json.load(f)
 
 with st.sidebar:
     run_agent = st.button("Run Agent")
+    task_num = st.number_input("Task number", min_value=1, max_value=5, value=1)
+    st.write(task_info[task_num-1])
+    
+
+agent = init_agent(task_num)
 
 # --- Trigger button ---
 if run_agent:
@@ -94,10 +82,12 @@ if run_agent:
         buffer += message.content
         
         with chat:
-            if current_role == Role.ASSISTANT:
-                st.code(buffer)
-            else:
-                st.text(buffer)
+            
+            with st.container(height=500):
+                if current_role == Role.ASSISTANT:
+                    st.code(buffer, language="verilog", height=500, wrap_lines=True)
+                else:
+                    st.text(buffer)
                 
     # last role 
     new_messages.append({"role": current_role,
