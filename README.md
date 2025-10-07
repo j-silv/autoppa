@@ -104,6 +104,32 @@ $ autoppa power baseline/reference/task1.v
 > Power (mW) == 3.61
 ```
 
+You can run the previous steps with one command by using the `benchmark` command:
+
+```
+$ autoppa benchmark 1 reference
+```
+
+```
+==========================================================================
+Task number: 1
+Description: Increase the speed (performance) of this multiply module
+Metric: performance
+Reference performance: 3100 ns
+==========================================================================
+
+-------- BASELINE reference --------
+
+The simulation passed successfully
+Execution time (ns) == 3100
+
+The synthesis completed successfully
+Area (number of cells) == 1516
+
+The power analysis completed successfully
+Power (mW) == 3.7100
+```
+
 ## Baseline
 
 The following baselines are considered for the benchmark:
